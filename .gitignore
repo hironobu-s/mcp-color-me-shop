@@ -170,3 +170,18 @@ dist
 
 .dev.vars
 .wrangler/
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build output
+dist/
+build/
+
+# Lock files (if using pnpm)
+pnpm-lock.yaml
