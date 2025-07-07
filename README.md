@@ -1,126 +1,161 @@
-# Model Context Protocol (MCP) Server + Google OAuth
+# mcp-conoha-color-me
 
-This is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that supports remote MCP connections, with Google OAuth built-in.
+カラーミーショップのAPIをMCP（Model Context Protocol）経由で操作できるサーバーです。
 
-You can deploy it to your own Cloudflare account, and after you create your own Google Cloud OAuth client app, you'll have a fully functional remote MCP server that you can build off. Users will be able to connect to your MCP server by signing in with their Google account.
+## 概要
 
-You can use this as a reference example for how to integrate other OAuth providers with an MCP server deployed to Cloudflare, using the [`workers-oauth-provider` library](https://github.com/cloudflare/workers-oauth-provider).
+このプロジェクトは、カラーミーショップのAPIをMCPサーバーとして実装したものです。Cloudflare Workers上で動作し、カラーミーショップのOAuth認証を通じてショップデータの読み取りや更新が可能です。
 
-The MCP server (powered by [Cloudflare Workers](https://developers.cloudflare.com/workers/)): 
+## 特徴
 
-* Acts as OAuth _Server_ to your MCP clients
-* Acts as OAuth _Client_ to your _real_ OAuth server (in this case, Google)
+- 🔐 OAuth 2.0認証によるセキュアなAPI接続
+- 📦 商品、在庫、売上、顧客データの管理
+- 🛡️ 環境変数による読み取り専用/読み書きモードの切り替え
+- ☁️ Cloudflare Workers上でのサーバーレス実行
+- 🚀 SSE（Server-Sent Events）を使用した効率的な通信
 
-## Getting Started
+## 実装済みのMCPツール
 
-Clone the repo & install dependencies: `npm install`
+### 読み取り系ツール（18個）
+- `get_shop` - ショップ情報の取得
+- `get_products` - 商品一覧の取得
+- `get_product` - 商品詳細の取得
+- `get_stocks` - 在庫一覧の取得
+- `get_stock` - 在庫詳細の取得
+- `get_sales` - 売上一覧の取得
+- `get_sale` - 売上詳細の取得
+- `get_customers` - 顧客一覧の取得
+- `get_customer` - 顧客詳細の取得
+- `get_categories` - カテゴリー一覧の取得
+- `get_payments` - 決済方法一覧の取得
+- `get_deliveries` - 配送方法一覧の取得
+- `get_delivery_date_settings` - お届け希望日設定の取得
+- `get_shop_coupons` - クーポン一覧の取得
+- `get_gift_settings` - ギフト設定の取得
+- `get_regular_cycle_settings` - 定期購入サイクル設定の取得
+- `get_page_layout_parts` - ページレイアウトパーツの取得
+- `get_templates` - テンプレート一覧の取得
 
-### For Production
-Create a new [Google Cloud OAuth App](https://cloud.google.com/iam/docs/workforce-manage-oauth-app): 
-- For the Homepage URL, specify `https://mcp-google-oauth.<your-subdomain>.workers.dev`
-- For the Authorization callback URL, specify `https://mcp-google-oauth.<your-subdomain>.workers.dev/callback`
-- Note your Client ID and generate a Client secret. 
-- Set secrets via Wrangler
+### 書き込み系ツール（11個）
+- `create_product` - 商品の作成
+- `update_product` - 商品の更新
+- `delete_product` - 商品の削除
+- `create_stock` - 在庫の作成
+- `update_stock` - 在庫の更新
+- `delete_stock` - 在庫の削除
+- `update_sale` - 売上の更新
+- `cancel_sale` - 売上のキャンセル
+- `create_customer` - 顧客の作成
+- `update_customer` - 顧客の更新
+- `create_shop_coupon` - クーポンの作成
+
+## セットアップ
+
+### 必要な環境
+- Node.js 18以上
+- npm
+- Cloudflare アカウント
+- カラーミーショップの開発者アカウント
+- カラーミーショップの管理者権限（副管理者権限ではAPIアクセスができません）
+
+### インストール
+
 ```bash
-wrangler secret put GOOGLE_CLIENT_ID
-wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put COOKIE_ENCRYPTION_KEY # add any random string here e.g. openssl rand -hex 32
-wrangler secret put HOSTED_DOMAIN # optional: use this when restrict google account domain
+# リポジトリのクローン
+git clone https://github.com/your-username/mcp-conoha-color-me.git
+cd mcp-conoha-color-me
+
+# 依存関係のインストール
+npm install
 ```
-#### Set up a KV namespace
-- Create the KV namespace: 
-`wrangler kv:namespace create "OAUTH_KV"`
-- Update the Wrangler file with the KV ID
 
-#### Deploy & Test
-Deploy the MCP server to make it available on your workers.dev domain 
-` wrangler deploy`
+### 環境変数の設定
 
-Test the remote server using [Inspector](https://modelcontextprotocol.io/docs/tools/inspector): 
+`wrangler.jsonc`で以下の環境変数を設定してください：
 
-```
-npx @modelcontextprotocol/inspector@latest
-```
-Enter `https://mcp-google-oauth.<your-subdomain>.workers.dev/sse` and hit connect. Once you go through the authentication flow, you'll see the Tools working: 
-
-<img width="640" alt="image" src="https://github.com/user-attachments/assets/7973f392-0a9d-4712-b679-6dd23f824287" />
-
-You now have a remote MCP server deployed! 
-
-### Access Control
-
-This MCP server uses Google Cloud OAuth for authentication. All authenticated Google users can access basic tools like "add". When you restrict users with hosted domain, set `HOSTED_DOMAIN` env.
-
-### Access the remote MCP server from Claude Desktop
-
-Open Claude Desktop and navigate to Settings -> Developer -> Edit Config. This opens the configuration file that controls which MCP servers Claude can access.
-
-Replace the content with the following configuration. Once you restart Claude Desktop, a browser window will open showing your OAuth login page. Complete the authentication flow to grant Claude access to your MCP server. After you grant access, the tools will become available for you to use. 
-
-```
+```json
 {
-  "mcpServers": {
-    "math": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://mcp-google-oauth.<your-subdomain>.workers.dev/sse"
-      ]
-    }
+  "vars": {
+    "COLORME_READ_ONLY": "true",  // 読み取り専用モード（"false"で読み書き可能）
+    "COOKIE_ENCRYPTION_KEY": "your-encryption-key",
+    "COLOR_ME_CLIENT_ID": "your-client-id",
+    "COLOR_ME_CLIENT_SECRET": "your-client-secret"
   }
 }
 ```
 
-Once the Tools (under 🔨) show up in the interface, you can ask Claude to use them. For example: "Could you use the math tool to add 23 and 19?". Claude should invoke the tool and show the result generated by the MCP server.
+### Cloudflare KVの設定
 
-### For Local Development
-If you'd like to iterate and test your MCP server, you can do so in local development. This will require you to create another OAuth App on Google Cloud: 
-- For the Homepage URL, specify `http://localhost:8788`
-- For the Authorization callback URL, specify `http://localhost:8788/callback`
-- Note your Client ID and generate a Client secret. 
-- Create a `.dev.vars` file in your project root with: 
-```
-GOOGLE_CLIENT_ID=your_development_google_cloud_oauth_client_id
-GOOGLE_CLIENT_SECRET=your_development_google_cloud_oauth_client_secret
+このプロジェクトはOAuth認証情報を保存するためにCloudflare Workers KVを使用します。デプロイ前に以下の手順でKVネームスペースを作成し、`wrangler.jsonc`に設定する必要があります：
+
+1. KVネームスペースの作成：
+```bash
+npx wrangler kv namespace create "OAUTH_KV"
 ```
 
-#### Develop & Test
-Run the server locally to make it available at `http://localhost:8788`
-`wrangler dev`
+2. 作成されたKVネームスペースのIDを`wrangler.jsonc`に設定：
+```json
+{
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "作成されたKVネームスペースのID"
+    }
+  ]
+}
+```
 
-To test the local server, enter `http://localhost:8788/sse` into Inspector and hit connect. Once you follow the prompts, you'll be able to "List Tools". 
+`OAUTH_KV`はOAuthトークン情報を安全に保存するための専用のKVネームスペースです。このストレージはセキュリティを重視した設計になっており、シークレット（アクセストークン、リフレッシュトークン等）はハッシュ化されて保存されます。
 
-#### Using Claude and other MCP Clients
+### CloudFlare Workersへデプロイ
 
-When using Claude to connect to your remote MCP server, you may see some error messages. This is because Claude Desktop doesn't yet support remote MCP servers, so it sometimes gets confused. To verify whether the MCP server is connected, hover over the 🔨 icon in the bottom right corner of Claude's interface. You should see your tools available there.
+```bash
+# デプロイ
+npm run deploy
+```
 
-#### Using Cursor and other MCP Clients
+## 使用方法
 
-To connect Cursor with your MCP server, choose `Type`: "Command" and in the `Command` field, combine the command and args fields into one (e.g. `npx mcp-remote https://<your-worker-name>.<your-subdomain>.workers.dev/sse`).
+Claude (Web版) での設定例です
 
-Note that while Cursor supports HTTP+SSE servers, it doesn't support authentication, so you still need to use `mcp-remote` (and to use a STDIO server, not an HTTP one).
+### Claudeでの設定
 
-You can connect your MCP server to other MCP clients like Windsurf by opening the client's configuration file, adding the same JSON that was used for the Claude setup, and restarting the MCP client.
+1. 以下を参考にClaudeにMCPサーバーの設定を追加する
 
-## How does it work? 
+[Remote MCPを使用したカスタムインテグレーションの開始方法](https://support.anthropic.com/ja/articles/11175166-remote-mcp%E3%82%92%E4%BD%BF%E7%94%A8%E3%81%97%E3%81%9F%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E3%82%A4%E3%83%B3%E3%83%86%E3%82%B0%E3%83%AC%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%E3%81%AE%E9%96%8B%E5%A7%8B%E6%96%B9%E6%B3%95)
 
-#### OAuth Provider
-The OAuth Provider library serves as a complete OAuth 2.1 server implementation for Cloudflare Workers. It handles the complexities of the OAuth flow, including token issuance, validation, and management. In this project, it plays the dual role of:
+ここで設定した「連携名」は、後で使うのでメモしておきます
 
-- Authenticating MCP clients that connect to your server
-- Managing the connection to Google Cloud's OAuth services
-- Securely storing tokens and authentication state in KV storage
+2. 接続する
 
-#### Durable MCP
-Durable MCP extends the base MCP functionality with Cloudflare's Durable Objects, providing:
-- Persistent state management for your MCP server
-- Secure storage of authentication context between requests
-- Access to authenticated user information via `this.props`
-- Support for conditional tool availability based on user identity
+Claudeから接続すると、カラーミーショップのOAuth認証画面へリダイレクトされますので、カラーミーショップの管理者アカウントでログイン（副管理者権限では利用できません）
 
-#### MCP Remote
-The MCP Remote library enables your server to expose tools that can be invoked by MCP clients like the Inspector. It:
-- Defines the protocol for communication between clients and your server
-- Provides a structured way to define tools
-- Handles serialization and deserialization of requests and responses
-- Maintains the Server-Sent Events (SSE) connection between clients and your server
+認証完了後、Claudeから各種操作が可能になります
+
+
+3. Claudeとの会話で利用
+
+以下のように最初にMCPサーバーを使うことを宣言しておくと、確実に使ってくれます。
+
+```
+「連携名」を使ってショップ管理を行います。
+```
+
+そうするとMCPサーバーを通じてデータ取得が行われます。その後は、「受注状況を知りたい」「在庫一覧を取得して」「○月の売り上げを集計して」のように使うことができます。
+
+## セキュリティ
+
+- OAuth 2.0による認証
+- 環境変数`COLORME_READ_ONLY`でAPIアクセスを制限
+- Cloudflare WorkersのDurable Objectsによるセッション管理
+
+## ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+---
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
