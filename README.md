@@ -1,4 +1,4 @@
-# mcp-conoha-color-me
+# mcp-color-me-shop
 
 カラーミーショップのAPIをMCP（Model Context Protocol）経由で操作できるサーバーです。
 
@@ -62,8 +62,8 @@
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/your-username/mcp-conoha-color-me.git
-cd mcp-conoha-color-me
+git clone https://github.com/hironobu-s/mcp-color-me-shop.git
+cd mcp-color-me-shop
 
 # 依存関係のインストール
 npm install
