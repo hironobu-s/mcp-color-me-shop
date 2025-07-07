@@ -2,7 +2,7 @@ import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import { z } from "zod";
-import { GoogleHandler } from "./google-handler";
+import { ColorMeHandler } from "./colorme-handler";
 import { 
 	ColorMeApiClient, 
 	Shop, 
@@ -836,6 +836,6 @@ export default new OAuthProvider({
 	apiRoute: "/sse",
 	authorizeEndpoint: "/authorize",
 	clientRegistrationEndpoint: "/register",
-	defaultHandler: GoogleHandler as any,
+	defaultHandler: ColorMeHandler as any,
 	tokenEndpoint: "/token",
 });

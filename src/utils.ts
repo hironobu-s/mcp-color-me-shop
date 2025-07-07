@@ -6,7 +6,6 @@
  * @param {string} options.client_id - The client ID of the application.
  * @param {string} options.redirect_uri - The redirect URI of the application.
  * @param {string} [options.state] - The state parameter.
- * @param {string} [options.hosted_domain] - The hosted domain parameter.
  *
  * @returns {string} The authorization URL.
  */
@@ -16,14 +15,12 @@ export function getUpstreamAuthorizeUrl({
 	scope,
 	redirectUri,
 	state,
-	hostedDomain,
 }: {
 	upstreamUrl: string;
 	clientId: string;
 	scope: string;
 	redirectUri: string;
 	state?: string;
-	hostedDomain?: string;
 }) {
 	const upstream = new URL(upstreamUrl);
 	upstream.searchParams.set("client_id", clientId);
@@ -31,7 +28,6 @@ export function getUpstreamAuthorizeUrl({
 	upstream.searchParams.set("scope", scope);
 	upstream.searchParams.set("response_type", "code");
 	if (state) upstream.searchParams.set("state", state);
-	if (hostedDomain) upstream.searchParams.set("hd", hostedDomain);
 	return upstream.href;
 }
 
@@ -69,11 +65,11 @@ export async function fetchUpstreamAuthToken({
 
 	const resp = await fetch(upstreamUrl, {
 		body: new URLSearchParams({
-			clientId,
-			clientSecret,
+			client_id: clientId,
+			client_secret: clientSecret,
 			code,
-			grantType,
-			redirectUri,
+			grant_type: grantType,
+			redirect_uri: redirectUri,
 		}).toString(),
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -96,10 +92,12 @@ export async function fetchUpstreamAuthToken({
 	return [body.access_token, null];
 }
 
-// Context from the auth process, encrypted & stored in the auth token
-// and provided to the MyMCP as this.props
+// 認証プロセスから取得したコンテキスト情報
+// 暗号化されて認証トークンに保存され、MyMCPのthis.propsとして提供される
 export type Props = {
-	name: string;
-	email: string;
-	accessToken: string;
+	shopId: string;        // ショップID
+	shopName: string;      // ショップ名
+	shopUrl: string;       // ショップURL
+	accessToken: string;   // アクセストークン
+	scopes: string[];      // 付与されたスコープ
 };

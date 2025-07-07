@@ -58,8 +58,8 @@
 	"vars": {
 		"COLORME_READ_ONLY": "true",
 		"COOKIE_ENCRYPTION_KEY": "",
-		"GOOGLE_CLIENT_ID": "",
-		"GOOGLE_CLIENT_SECRET": ""
+		"COLORME_CLIENT_ID": "",
+		"COLORME_CLIENT_SECRET": ""
 	},
 	/**
 	 * Note: Use secrets to store sensitive data.
